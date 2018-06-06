@@ -67,7 +67,7 @@ A flowchart of this algorithm follows:
 
 The VF page should meet the following specifications:
 
-* Doesn’t use Lightning.  Since I’m new to Lightning, I didn’t want to add uncertainty to my process during this short coding exercise.  That said, the finished page should at least be compatible with Lightning Experience, which it is.
+* Doesn’t use Lightning.  Since I’m somewhat new to Lightning (November 2017), I didn’t want to add uncertainty to my process during this short coding exercise.  That said, the finished page should at least be compatible with Lightning Experience, which it is.
 * Uses AJAX to load and manipulate data.  Tables that are built “traditionally” with standard VF table elements (apex:pageBlockTable) are brittle and don’t scale well.  The current version loads the entire Payment table through AJAX to improve the client-side experience, but a future version could be easily modified to do incremental loads.  The same type of enhancement would be much harder starting from a pageBlockTable design.
 * Single page design – I wanted to avoid taking the user to other pages to accomplish Add, Edit, and Delete functionality.
 * Project list (for new payment dialog) is loaded with JSON, and currently just loads the entire list.  This approach would have to be rethought if there were any possibility of the number of projects exceeding a few hundred (the drop-down element would be replaced with a lookup facility of some sort).
@@ -83,7 +83,7 @@ Server-side validation rules were implemented as config (to enforce out-of-the-b
 
 The following test scenarios were implemented to promote a test-driven approach during development:
 
-* There are 2 “Will Byrne” contact (payer) records to test that grouping is handled correctly by contact Id and not just by name.
+* There are 2 “Tim Barr” contact (payer) records to test that grouping is handled correctly by contact Id and not just by name.
 * The contact “Caralee D’Apostrohpe” is intended to make sure that the apostrophe character doesn’t break any JavaScript.
 * The project “Let’s Test Apostrophes!” is there for the same reason.
 * The developer tools page was implemented so that there could be hundreds or thousands of test payment records, allowing me to see how the page would scale all along during development.
