@@ -1,0 +1,1 @@
+<apex:page controller="PaymentUpdateJSONController" action="{!go}" showHeader="false" sidebar="false" standardStylesheets="false" contentType="application/json">{!jsonData}</apex:page>

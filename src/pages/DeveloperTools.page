@@ -1,0 +1,36 @@
+<!--
+* @author Graham MacRobie
+* @date November 14, 2017
+*
+* @description Utility page for developers to assist in creating and deleting random payment records.  Also can kick
+* off batch jobs to reset totals for testing purposes.
+-->
+
+<apex:page controller="DeveloperToolsController" showHeader="true" sidebar="true" title="{!$Label.PPG_LBL_Developer_Tools}">
+	<apex:sectionHeader title="{!$Label.PPG_LBL_Developer_Tools}" />
+
+	<apex:pageMessages />
+
+	<apex:form >
+		<apex:pageBlock >
+			<apex:pageBlockButtons location="top">
+				<apex:commandButton value="{!$Label.PPG_LBL_Insert_Random_Payments}" action="{!insertRandom}" />
+				<apex:commandButton value="{!$Label.PPG_LBL_Delete_Random_Payments}" action="{!deleteRandom}" />
+				<apex:commandButton value="{!$Label.PPG_LBL_Audit_Totals}" action="{!auditTotals}" />
+				<apex:commandButton value="{!$Label.PPG_LBL_Reset_Totals_Batch}" action="{!resetTotals}" />
+			</apex:pageBlockButtons>
+
+			<apex:pageBlockSection columns="1">
+				<apex:pageBlockSectionItem >
+					<apex:outputLabel value="{!$Label.PPG_LBL_Current_Payment_Records}" />
+					<apex:outputText value="{!currentNumberOfPayments}" />
+				</apex:pageBlockSectionItem>
+
+				<apex:pageBlockSectionItem >
+					<apex:outputLabel value="{!$Label.PPG_LBL_Payment_Records_Number}" />
+					<apex:inputText value="{!numberOfPayments}" />
+				</apex:pageBlockSectionItem>
+			</apex:pageBlockSection>
+		</apex:pageBlock>
+	</apex:form>
+</apex:page>

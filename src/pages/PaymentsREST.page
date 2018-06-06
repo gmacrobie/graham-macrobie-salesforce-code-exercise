@@ -1,0 +1,489 @@
+<!--
+* @author Graham MacRobie
+* @date November 14, 2017
+*
+* @description Payments by Payers page (main page for coding challenge).  Libraries loaded externally for development ease.  Didn't split out JS into separate file because it's almost all JS anyway.
+-->
+
+<apex:page controller="PaymentsController" showHeader="true" sidebar="true" title="{!$Label.PPG_LBL_Payments_by_Payer}">
+	<apex:includeScript value="https://code.jquery.com/jquery-1.12.4.js" />
+	<apex:includeScript value="https://cdn.datatables.net/1.10.16/js/jquery.dataTables.js" />
+	<apex:includeScript value="https://cdn.datatables.net/rowgroup/1.0.2/js/dataTables.rowGroup.js" />
+	<apex:includeScript value="https://cdn.datatables.net/buttons/1.4.2/js/dataTables.buttons.min.js" />
+	<apex:includeScript value="https://cdn.datatables.net/buttons/1.4.2/js/buttons.flash.min.js" />
+	<apex:includeScript value="https://cdn.datatables.net/buttons/1.4.2/js/buttons.html5.min.js" />
+	<apex:includeScript value="https://cdn.datatables.net/buttons/1.4.2/js/buttons.print.min.js" />
+	<apex:includeScript value="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js" />
+	<apex:includeScript value="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.32/pdfmake.min.js" />
+	<apex:includeScript value="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.32/vfs_fonts.js" />
+	<apex:includeScript value="https://cdn.datatables.net/buttons/1.4.2/js/buttons.html5.min.js" />
+	<apex:includeScript value="https://cdn.datatables.net/select/1.2.3/js/dataTables.select.min.js" />
+	<apex:includeScript value="{!URLFOR($Resource.Editor, '/js/dataTables.editor.min.js')}" />
+
+	<apex:stylesheet value="https://cdn.datatables.net/1.10.16/css/jquery.dataTables.min.css" />
+	<apex:stylesheet value="https://cdn.datatables.net/rowgroup/1.0.2/css/rowGroup.dataTables.min.css" />
+	<apex:stylesheet value="https://cdn.datatables.net/buttons/1.4.2/css/buttons.dataTables.min.css" />
+	<apex:stylesheet value="https://cdn.datatables.net/select/1.2.3/css/select.dataTables.min.css" />
+	<apex:stylesheet value="{!URLFOR($Resource.Editor, '/css/editor.dataTables.min.css')}" />
+
+	<style>
+		#ppgDemo_length {
+			margin-left: 60px;
+			float: right;
+		}
+
+		.headerName {
+			font-size: 13pt;
+		}
+
+		.totalTable {
+			margin-left: 15px;
+		}
+
+		.totals {
+			font-weight: normal !important;
+			text-align: right;
+			padding-top: 8px !important;
+			padding-bottom: 0px !important;
+		}
+
+		.totalValues {
+			padding-top: 8px !important;
+			padding-bottom: 0px !important;
+		}
+
+		div.DTED_Lightbox_Background {
+  			z-index: 100;
+		}
+
+		div.DTED_Lightbox_Wrapper {
+  			z-index: 101;
+		}
+
+		.photoDiv {
+			width: 80px;
+			height: 70px;
+			background-color: #f0f0f0;
+			padding: 7px;
+			border-radius: 10px;
+			text-align: center;
+			float: right;
+		}
+
+		.photoDiv img {
+			width: 95% !important;
+			height: auto !important;
+		}
+
+		#ppgDemoForm {
+		    display: flex;
+		    flex-flow: row wrap;
+		}
+		 
+		#ppgDemoForm fieldset {
+		    flex: 1;
+		    border: 1px solid #aaa;
+		    margin: 0.5em;
+		}
+		 
+		#ppgDemoForm fieldset legend {
+		    padding: 5px 20px;
+		    border: 1px solid #aaa;
+		    font-weight: bold;
+		}
+		 
+		#ppgDemoForm fieldset.name {
+		    flex: 2 100%;
+		}
+		 
+		#ppgDemoForm fieldset.name legend {
+		    background: #bfffbf;
+		}
+		 
+		#ppgDemoForm fieldset.office legend {
+		    background: #ffffbf;
+		}
+		 
+		#ppgDemoForm fieldset.hr legend {
+		    background: #ffbfbf;
+		}
+		 
+		#ppgDemoForm div.DTE_Field {
+		    padding: 5px;
+		}
+
+		.noEdit {
+		}		
+	</style>
+
+	<script type="text/javascript">
+		var editor;
+
+		// setup the editor
+
+		$(document).ready(function() {
+			editor = new $.fn.dataTable.Editor( {
+				ajax: {
+					url: '/services/apexrest/update',
+					type: 'GET',
+					headers: {
+						'Authorization': 'Bearer {!$Api.Session_ID}'
+					}
+				},
+				table: "#ppgDemo",
+				idSrc: 'paymentId',
+				template: '#ppgDemoForm',
+				fields: [
+					{
+						label: "{!JSENCODE($Label.PPG_LBL_Payment_Id)}:",
+						name: "paymentName"
+					}, {
+						label: "{!JSENCODE($Label.PPG_LBL_Project_Name)}:",
+						name: "projectName"
+		            }, {
+        		        label: "{!JSENCODE($Label.PPG_LBL_Project_Name)}:",
+                		name:  "projectSelect",
+                		type:  "select",
+                		options: {!projectsJson}
+            		}, {
+						label: "{!JSENCODE($Label.PPG_LBL_Payer_Id)}:",
+						name: "payerId"
+					}, {
+						label: "{!JSENCODE($Label.PPG_LBL_Payer_Name)}:",
+						name: "payerName"
+					}, {
+						label: "{!JSENCODE($Label.PPG_LBL_Payment_Amount)}:",
+						name: "paymentAmount"
+					}, {
+						label: "{!JSENCODE($Label.PPG_LBL_Payment_Date)}:",
+						name: "paymentDate",
+						type: "datetime"
+					}
+				]
+			} );
+
+			// these fields are read-only
+
+			editor.field( 'paymentName' ).disable();
+			editor.field( 'projectName' ).disable();
+			editor.field( 'payerName' ).disable();
+
+			editor.field( 'payerId' ).hide();
+			editor.field('projectSelect').hide();
+
+			editor.on('submitComplete', function (e, type) {
+				$('#ppgDemo').DataTable().ajax.reload();
+			});
+
+			editor.on('close', function (e, type) {
+				editor.field('paymentName').show();
+				editor.field('projectName').show();
+				editor.field('projectSelect').hide();
+			});
+
+			// validation rules processed on preSubmit
+
+			editor.on( 'preSubmit', function ( e, o, action ) {
+				if ( action == 'remove' ) {
+					return true;
+				}
+
+				var paymentAmount = this.field( 'paymentAmount' );
+
+				if ( ! paymentAmount.val() ) {
+					paymentAmount.error( '{!JSENCODE($Label.PPG_MSG_Payment_Amount_Required)}' );
+
+				} else if (isNaN(paymentAmount.val())) {
+					paymentAmount.error( '{!JSENCODE($Label.PPG_MSG_Payment_Numerical)}' );
+
+				} else if (Number(paymentAmount.val()) <= 0) {
+					paymentAmount.error( '{!JSENCODE($Label.PPG_MSG_Payment_Positive)}' );
+
+				} else if (Number(paymentAmount.val()) > 1000000000) {
+					paymentAmount.error( '{!JSENCODE($Label.PPG_MSG_Payment_Max)}' );
+
+				}
+
+				var paymentDate = this.field('paymentDate');
+
+				if (!paymentDate.val()) {
+					paymentDate.error( '{!JSENCODE($Label.PPG_MSG_Payment_Date_Required)}' );
+
+				} else if (!/^\d{4}\-\d{1,2}\-\d{1,2}$/.test(paymentDate.val())) {
+					paymentDate.error( '{!JSENCODE($Label.PPG_MSG_Payment_Date_Format)}' );
+
+			    } else {
+			    	var today = new Date();
+
+					// Parse the date parts to integers
+			    	var parts = paymentDate.val().split("-");
+			    	var day = parseInt(parts[2], 10);
+			    	var month = parseInt(parts[1], 10);
+			    	var year = parseInt(parts[0], 10);
+
+		    		var newDate = new Date();
+		    		newDate.setFullYear(year, month - 1, day);
+
+			    	if (year < (today.getFullYear() - 1)) {
+						paymentDate.error( '{!JSENCODE($Label.PPG_MSG_Payment_Date_Last_Year)}' );
+
+			    	} else if (newDate > today) {
+						paymentDate.error( '{!JSENCODE($Label.PPG_MSG_Payment_Date_Future)}' );
+
+			    	}
+				}
+
+				if (action == 'create') {
+					var theProjectId = this.field('projectSelect');
+
+					if ((typeof theProjectId.val() == 'undefined') || (theProjectId.val() == '0')) {
+						theProjectId.error( '{!JSENCODE($Label.PPG_MSG_Project_Name_Selected)}' );
+					}
+				}
+
+				// If any error was reported, cancel the submission so it can be corrected
+				if ( this.inError() ) {
+					return false;
+				}
+			} );
+
+			// Activate an inline edit on click of a table cell
+<apex:outputPanel layout="none" rendered="{!$Permission.PaymentEdit}">
+			$('#ppgDemo').on( 'click', 'tbody td:not(.noEdit)', function (e) {
+				editor.inline( this );
+			} );
+</apex:outputPanel>
+
+			// New record
+<apex:outputPanel layout="none" rendered="{!$Permission.PaymentAdd}">
+			$('a.editor_create').on('click', function (e) {
+				e.preventDefault();
+
+				editor.create( {
+					title: '{!JSENCODE($Label.PPG_LBL_Create_New_Payment)}',
+					buttons: '{!JSENCODE($Label.PPG_LBL_Add)}'
+				} );
+			} );
+</apex:outputPanel>
+
+			// Edit payment
+<apex:outputPanel layout="none" rendered="{!$Permission.PaymentEdit}">
+			$('#ppgDemo').on('click', 'a.editor_edit', function (e) {
+				e.preventDefault();
+
+				editor.edit( $(this).closest('tr'), {
+					title: '{!JSENCODE($Label.PPG_LBL_Edit_Payment)}',
+					buttons: '{!JSENCODE($Label.PPG_LBL_Update)}'
+				} );
+			} );
+</apex:outputPanel>
+
+			// Delete a payment
+<apex:outputPanel layout="none" rendered="{!$Permission.PaymentDelete}">
+			$('#ppgDemo').on('click', 'a.editor_remove', function (e) {
+				e.preventDefault();
+
+				editor.remove( $(this).closest('tr'), {
+					title: '{!JSENCODE($Label.PPG_LBL_Delete_Payment)}',
+					message: '{!JSENCODE($Label.PPG_LBL_Delete_Confirmation)}',
+					buttons: '{!JSENCODE($Label.PPG_LBL_Delete)}'
+				} );
+			} );
+</apex:outputPanel>
+
+			$('#ppgDemo').DataTable( {
+				ajax: {
+					url: '/services/apexrest/retrieve',
+					type: 'GET',
+					headers: {
+						'Authorization': 'Bearer {!$Api.Session_ID}'
+					}
+				},
+				dom: 'Blftipr',
+				buttons: [
+		            {
+		                extend: 'copyHtml5',
+		                exportOptions: {
+		                    columns: [ 2, 4, 8, 12, 13 ]
+		                }
+		            },
+		            {
+		                extend: 'excelHtml5',
+		                exportOptions: {
+		                    columns: [ 2, 4, 8, 12, 13 ]
+		                }
+		            },
+		            {
+		                extend: 'pdfHtml5',
+		                exportOptions: {
+		                    columns: [ 2, 4, 8, 12, 13 ]
+		                }
+		            },
+		            {
+		                extend: 'print',
+		                exportOptions: {
+		                    columns: [ 2, 4, 8, 12, 13 ]
+		                }
+		            }
+				],
+				columns: [
+					{ data: 'paymentId' },  // 0
+					{
+                		data: null,
+                		className: "center,noEdit",
+                		defaultContent: 
+<apex:outputPanel layout="none" rendered="{!!$Permission.PaymentEdit && !$Permission.PaymentDelete}">''</apex:outputPanel>
+<apex:outputPanel layout="none" rendered="{!$Permission.PaymentEdit && !$Permission.PaymentDelete}">'<a href="" class="editor_edit">{!$Label.PPG_LBL_Edit}</a>'</apex:outputPanel>
+<apex:outputPanel layout="none" rendered="{!!$Permission.PaymentEdit && $Permission.PaymentDelete}">'<a href="" class="editor_remove">{!$Label.PPG_LBL_Delete}</a>'</apex:outputPanel>
+<apex:outputPanel layout="none" rendered="{!$Permission.PaymentEdit && $Permission.PaymentDelete}">'<a href="" class="editor_edit">{!$Label.PPG_LBL_Edit}</a> | <a href="" class="editor_remove">{!$Label.PPG_LBL_Delete}</a>'</apex:outputPanel>
+            		},  // 1
+					{ 
+						data: 'paymentName',
+						className: "noEdit",
+				        "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
+            				$(nTd).html("<a href='/" + oData.paymentId + "'>" + oData.paymentName + "</a>");
+        				}
+					},  // 2
+					{ data: 'projectId' },  // 3
+					{ 
+						data: 'projectName', 
+						className: "noEdit",
+				        "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
+            				$(nTd).html("<a href='/" + oData.projectId + "'>" + oData.projectName + "</a>");
+        				}
+					},  // 4
+					{ data: 'totalProjectPayments' },  // 5
+					{ data: 'mostRecentProjectPaymentDate' },  // 6
+					{ data: 'payerId' },  // 7
+					{ data: 'payerName' },  // 8
+					{ data: 'totalPayerPayments' },  // 9
+					{ data: 'mostRecentPayerPaymentDate' },  // 10
+					{ data: 'payerPhoto' },  // 11
+					{ data: 'paymentDate' },  // 12
+					{ 
+						data: 'paymentAmount',
+						className: 'dt-body-right',
+					 	render: $.fn.dataTable.render.number( ',', '.', 2, '$' )
+					}  // 13
+				],
+				columnDefs: [
+					{
+						targets: [ 0, 3, 5, 6, 7, 9, 10, 11 ],
+						visible: false,
+						searchable: false
+					},
+					{
+						targets: [ 8 ],
+						visible: false,
+						searchable: true
+					},
+					{
+						targets: [ 1 ],
+						visible: true,
+						searchable: false,
+						orderable: false
+					}
+				],
+				order: [[ 12, 'desc'], [ 2, 'desc']],
+				orderFixed: [[ 8, 'asc' ], [ 7, 'asc' ]],
+				rowGroup: {
+					startRender: function (rows, group) {
+						var headerRow = '';
+
+						headerRow += '<td colspan="3">';
+						headerRow += '<table class="totalTable">';
+
+						headerRow += '<tr>';
+						headerRow += '<td><span class="headerName"><a href="/' + rows.data().pluck('payerId')[0] + '">' + rows.data().pluck('payerName')[0] + '</a></span></td>';
+						headerRow += '<td>';
+
+<apex:outputPanel layout="none" rendered="{!$Permission.PaymentAdd}">
+						headerRow += '<a class="dt-button button-create" onclick="createPayment(\'' + rows.data().pluck('payerId')[0] + '\', \'' + rows.data().pluck('payerName')[0] + '\');">{!JSENCODE($Label.PPG_LBL_New_Payment)}</a>';
+</apex:outputPanel>
+
+						headerRow += '</td>';
+						headerRow += '</tr>';
+
+						headerRow += '<tr>';
+						headerRow += '<td class="totals">{!JSENCODE($Label.PPG_LBL_Total_Payments)} :</td>';
+						headerRow += '<td class="totalValues">' + rows.data().pluck('totalPayerPayments')[0] + '</td>';
+						headerRow += '</tr>';
+
+						headerRow += '<tr>';
+						headerRow += '<td class="totals">{!JSENCODE($Label.PPG_LBL_Most_Recent_Payment_Date)} :</td>';
+						headerRow += '<td class="totalValues">' + rows.data().pluck('mostRecentPayerPaymentDate')[0] + '</td>';
+						headerRow += '</tr>';
+
+						headerRow += '</table>';
+						headerRow += '</td>';
+
+						headerRow += '<td colspan="2" style="text-align: right;">';
+						headerRow += '<div class="photoDiv">';
+						headerRow += rows.data().pluck('payerPhoto')[0];
+						headerRow += '</div>';
+						headerRow += '</td>';
+						
+						return $('<tr/>')
+                    		.append( headerRow );
+					},
+					endRender: null,
+					dataSrc: 'payerId'
+				}
+			} );
+		} );	
+
+<apex:outputPanel layout="none" rendered="{!$Permission.PaymentAdd}">
+		function createPayment(payerId, payerName) {
+			editor.field('paymentName').hide();
+			editor.field('projectName').hide();
+			editor.field('projectSelect').show();
+
+			//editor.field('payerName').show();
+
+			editor.create( {
+				title: '{!JSENCODE($Label.PPG_LBL_Create_New_Payment)}',
+				buttons: '{!JSENCODE($Label.PPG_LBL_Add)}'
+			} );
+
+			editor.set('payerId', payerId);
+			editor.set('payerName', payerName);
+		}
+</apex:outputPanel>	
+	</script>
+
+	<apex:sectionHeader title="{!$Label.PPG_LBL_Payments_by_Payer}" />
+
+	<div id="ppgDemoForm">
+		<fieldset class="name">
+			<legend>{!$Label.PPG_LBL_Payment_Details}</legend>
+			<editor-field name="paymentName"></editor-field>
+			<editor-field name="payerId"></editor-field>
+			<editor-field name="payerName"></editor-field>
+			<editor-field name="projectName"></editor-field>
+			<editor-field name="projectSelect"></editor-field>
+			<editor-field name="paymentDate"></editor-field>
+			<editor-field name="paymentAmount"></editor-field>
+		</fieldset>
+	</div>
+
+	<table id="ppgDemo" class="display" cellspacing="0" width="100%">
+		<thead>
+			<tr>
+				<th>{!$Label.PPG_LBL_Payment_Record}</th>
+				<th>{!$Label.PPG_LBL_Action}</th>
+				<th>{!$Label.PPG_LBL_Payment_Id}</th>
+				<th>{!$Label.PPG_LBL_Project_Id}</th>
+				<th>{!$Label.PPG_LBL_Project_Name}</th>
+				<th>{!$Label.PPG_LBL_Project_Total_Payments}</th>
+				<th>{!$Label.PPG_LBL_Project_Most_Recent_Payment_Date}</th>
+				<th>{!$Label.PPG_LBL_Payer_Id}</th>
+				<th>{!$Label.PPG_LBL_Payer_Name}</th>
+				<th>{!$Label.PPG_LBL_Payer_Total_Payments}</th>
+				<th>{!$Label.PPG_LBL_Payer_Most_Recent_Payment_Date}</th>
+				<th>{!$Label.PPG_LBL_Payer_Photo}</th>
+				<th>{!$Label.PPG_LBL_Payment_Date}</th>
+				<th>{!$Label.PPG_LBL_Payment_Amount}</th>
+			</tr>
+		</thead>
+	</table>
+</apex:page>
